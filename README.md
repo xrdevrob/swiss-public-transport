@@ -1,503 +1,159 @@
-# Apps SDK MCP Server
+# Swiss Transit Explorer (MCP)
 
-[![Deploy to mcp-use](https://cdn.mcp-use.com/deploy.svg)](https://mcp-use.com/deploy/start?repository-url=https%3A%2F%2Fgithub.com%2Fmcp-use%2Fmcp-use%2Ftree%2Fmain%2Flibraries%2Ftypescript%2Fpackages%2Fcreate-mcp-use-app%2Fsrc%2Ftemplates%2Fapps-sdk&branch=main&project-name=apps-sdk-template&build-command=npm+install&start-command=npm+run+build+%26%26+npm+run+start&port=3000&runtime=node&base-image=node%3A20)
+Decision-ready Swiss public transit planning with live disruptions, risk scoring, and ChatGPT widgets.
 
-An MCP server template with OpenAI Apps SDK integration for ChatGPT-compatible widgets.
+![Chat demo](docs/images/chat-test-run.gif)
 
-## Features
+## What this app does
 
-- **🤖 OpenAI Apps SDK**: Full compatibility with ChatGPT widgets
-- **🎨 Official UI Components**: Integrated [OpenAI Apps SDK UI components](https://openai.github.io/apps-sdk-ui/) for consistent, accessible widgets
-- **🛒 Ecommerce Widgets**: Complete ecommerce example with carousel, search, map, and order confirmation
-- **🔄 Automatic Registration**: Widgets auto-register from `resources/` folder
-- **📦 Props Schema**: Zod schema validation for widget props
-- **🌙 Theme Support**: Dark/light theme detection via `useWidget` hook
-- **🛠️ TypeScript**: Complete type safety
-- **🔧 Widget Capabilities**: Full support for `callTool`, `sendFollowUpMessage`, and persistent state
+- Returns ranked connection options with reasons and risk levels.
+- Scores risk based on tight transfers, delays, and (optionally) weather exposure.
+- Adds buffer-aware departure guidance for arrive-by requests.
+- Enriches line IDs with GTFS mapping (IR/S/IC/Bus + operator) when available.
+- Ships two widgets: a route explorer and a live station board (departures/arrivals).
 
-## What's New: Apps SDK Integration
+## How it works
 
-This template demonstrates how to build ChatGPT-compatible widgets using OpenAI's Apps SDK:
+1. **Connections + station boards** come from the public `transport.opendata.ch` API.
+2. **GTFS static feed** (optional) maps raw IDs to human-friendly line names.
+3. **Risk scoring** evaluates transfers, delay signals, and peak-time penalties.
+4. **Weather insights** (Open-Meteo) are pulled only when explicitly requested.
+5. **Decision summary** produces ranked options with reasons and buffers.
 
-```typescript
-import { useWidget } from 'mcp-use/react';
+![Connections widget](docs/images/find_connections_widget.png)
 
-const MyWidget: React.FC = () => {
-  const { props, theme } = useWidget<MyProps>();
+## Tools
 
-  // props contains validated inputs from OpenAI
-  // theme is 'dark' or 'light' based on ChatGPT setting
+![Tools overview](docs/images/tools-overview.png)
+
+### `find_connections`
+Find connections with risk-ranked options and widget output.
+
+Parameters (most common):
+- `from`, `to` (string)
+- `datetime` (string, optional, e.g. `2026-01-06T18:00` or `18:00`)
+- `isArrivalTime` (boolean, optional)
+- `limit` (number, optional)
+- `maxTransfers` (number, optional)
+- `preferLowWalking` (boolean, optional)
+- `minimizeOutdoorIfRaining` (boolean, optional)
+- `bufferMinutes` (number, optional)
+- `detailLevel` (`compact` | `full`)
+- `includeWeather` (boolean, optional)
+
+Example (arrive-by with buffers + low walking):
+```json
+{
+  "from": "Zurich Oerlikon",
+  "to": "Meisterschwanden",
+  "datetime": "09:10",
+  "isArrivalTime": true,
+  "bufferMinutes": 8,
+  "maxTransfers": 1,
+  "preferLowWalking": true,
+  "detailLevel": "full"
 }
 ```
 
-## Getting Started
+Related screenshots:
+- ![Find connections config](docs/images/find_connections_config.png)
+- ![Find connections test](docs/images/find_connections-test.png)
 
-### Development
+### `check_disruptions`
+Check station-wide disruptions and delay patterns.
 
+![Check disruptions](docs/images/check_disruptions.png)
+
+### `check_route_delays`
+Check delays for a specific route, including station disruptions.
+
+![Route delays](docs/images/check_route_details.png)
+
+### `get_route_weather`
+Get destination weather and clothing advice (uses Open-Meteo).
+
+![Route weather](docs/images/check_route_weather.png)
+
+### `get_departures` / `get_arrivals`
+Live station boards rendered in a widget.
+
+![Departures board](docs/images/get_departures.png)
+![Arrivals board](docs/images/get_arrivals.png)
+
+## Widgets
+
+- **transit-route-explorer**: Connection list with risk pills, transfer details, and expandable legs.
+- **departures-board**: Live departures/arrivals table for a station.
+
+Both widgets are auto-registered from `resources/` and rendered through Apps SDK output templates.
+
+## Prompt templates
+
+The server exposes a single routing prompt that teaches the model which tool to call and how to map user intent to tool params.
+
+![Prompts overview](docs/images/prompts-overview.png)
+
+- `template_router`: tool routing policy + user request, used for intent-to-parameter mapping.
+
+## Resources
+
+The app relies on widget resources auto-registered from `resources/`.
+
+![Resources overview](docs/images/resources-overview.png)
+
+## GTFS line mapping (optional, recommended)
+
+To map raw IDs like `004816` to `IR 16`, `S11`, or `Bus 231`, build a local GTFS lookup.
+
+1) Download a GTFS ZIP from opentransportdata.swiss
+2) Build the lookup:
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
+npm run gtfs:build -- /path/to/gtfs_fpYYYY_YYYYMMDD.zip
 ```
 
-This starts:
-- MCP server on port 3000
-- Widget serving at `/mcp-use/widgets/*`
-- Inspector UI at `/inspector`
-
-### Production
-
-```bash
-# Build the server and widgets
-npm run build
-
-# Run the built server
-npm start
-```
-
-## Project Structure
-
-```
-apps-sdk/
-├── resources/                          # React widget components
-│   ├── display-weather.tsx              # Weather widget example
-│   ├── ecommerce-carousel.tsx           # Ecommerce product carousel
-│   ├── product-search-result.tsx        # Product search with filters
-│   ├── stores-locations-map.tsx         # Store locations map
-│   └── order-confirmation.tsx           # Order confirmation widget
-├── index.ts                             # Server entry point (includes brand info tool)
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-## GTFS Line Mapping (Recommended)
-
-To map raw journey IDs like `004816` to human-friendly line names (`IR 16`, `S11`, `Bus 231`) the server can load a GTFS lookup built from the Swiss GTFS static feed (opentransportdata.swiss).
-
-1) Download the latest GTFS ZIP from the Swiss timetable dataset:
-   - Dataset page: `https://data.opentransportdata.swiss/dataset/timetable-2025-gtfs2020`
-   - Pick the most recent `gtfs_fpYYYY_YYYYMMDD.zip` resource
-
-2) Build the lookup file:
-
-```bash
-npm run gtfs:build -- /path/to/gtfs_fp2025_YYYYMMDD.zip
-```
-
-3) Run the server (it auto-loads `data/gtfs-lookup.json`):
-
-```bash
-npm run dev
-```
-
-Optional: set a custom lookup path with `GTFS_LOOKUP_PATH=/path/to/gtfs-lookup.json`.
-
-When present, the server enriches each leg/departure with:
+At runtime, the server loads `data/gtfs-lookup.json` and enriches lines with:
 - `lineDisplay` (e.g. `IR 16`)
-- `lineType` (train/bus/tram/etc.)
-- `operator` (SBB, BLS, PostAuto, …)
+- `lineType` (train/bus/tram)
+- `operator` (SBB, BLS, PostAuto, ...)
 
-## How Automatic Registration Works
+## Run locally
 
-All React components in the `resources/` folder are automatically registered as MCP tools and resources when they export `widgetMetadata`:
-
-```typescript
-import { z } from 'zod';
-import type { WidgetMetadata } from 'mcp-use/react';
-
-const propSchema = z.object({
-  city: z.string().describe('The city name'),
-  temperature: z.number().describe('Temperature in Celsius'),
-});
-
-export const widgetMetadata: WidgetMetadata = {
-  description: 'My widget description',
-  props: propSchema,
-};
-
-const MyWidget: React.FC = () => {
-  const { props } = useWidget<z.infer<typeof propSchema>>();
-  // Your widget implementation
-};
-
-export default MyWidget;
+```bash
+npm install
+npm run dev
 ```
 
-This automatically creates:
-- **Tool**: `display-weather` - Accepts parameters via OpenAI
-- **Resource**: `ui://widget/display-weather` - Static access
+- Server: `http://localhost:3000/mcp`
+- Inspector: `http://localhost:3000/inspector`
 
-## Building Widgets with Apps SDK
+## Using it in ChatGPT
 
-### Using the `useWidget` Hook
+1. Activate Developer Mode in ChatGPT
+2. Add a new app and enter the MCP server URL.
+3. Ask for a route or a station board.
 
-```typescript
-import { useWidget } from 'mcp-use/react';
+![ChatGPT app setup](docs/images/chatGPT-app-setup.png)
+![ChatGPT app details](docs/images/chatGPT-app-details.png)
 
-interface MyProps {
-  title: string;
-  count: number;
-}
+Example prompts:
+- "Get me to Zurich HB by 09:10 with max 1 transfer; prefer low walking; if it rains, minimize outdoor time."
+- "Show me the live departures for Zurich HB."
+- "Is there any delay on the 17:15 connection from Oerlikon to Lugano?"
 
-const MyWidget: React.FC = () => {
-  const { props, theme } = useWidget<MyProps>();
+![Chat find connections](docs/images/chat-find_connections.png)
+![Chat find connections (details)](docs/images/chat-find_connections2.png)
 
-  // props are validated and typed based on your schema
-  // theme is automatically set by ChatGPT
+## Deployment
 
-  return (
-    <div className={theme === 'dark' ? 'dark-theme' : 'light-theme'}>
-      <h1>{props.title}</h1>
-      <p>Count: {props.count}</p>
-    </div>
-  );
-};
+Deploy to mcp-use cloud:
+```bash
+mcp-use deploy
 ```
 
-### Defining Widget Metadata
+![mcp-use deployment](docs/images/mcp-use-deployment.png)
 
-Use Zod schemas to define widget inputs:
+## Data sources
 
-```typescript
-import { z } from 'zod';
-import type { WidgetMetadata } from 'mcp-use/react';
-
-const propSchema = z.object({
-  name: z.string().describe('Person name'),
-  age: z.number().min(0).max(120).describe('Age in years'),
-  email: z.string().email().describe('Email address'),
-});
-
-export const widgetMetadata: WidgetMetadata = {
-  description: 'Display user information',
-  props: propSchema,
-};
-```
-
-### Theme Support
-
-Automatically adapt to ChatGPT's theme:
-
-```typescript
-const { theme } = useWidget();
-
-const bgColor = theme === 'dark' ? 'bg-gray-900' : 'bg-white';
-const textColor = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
-```
-
-## Official UI Components
-
-This template uses the [OpenAI Apps SDK UI component library](https://openai.github.io/apps-sdk-ui/) for building consistent, accessible widgets. The library provides:
-
-- **Button**: Primary, secondary, and outline button variants
-- **Card**: Container component for content sections
-- **Carousel**: Image and content carousel with transitions
-- **Input**: Form input fields
-- **Icon**: Consistent iconography
-- **Transition**: Smooth animations and transitions
-
-Import components like this:
-
-```typescript
-import {
-  Button,
-  Card,
-  Carousel,
-  CarouselItem,
-  Transition,
-  Icon,
-  Input,
-} from '@openai/apps-sdk-ui';
-```
-
-## Ecommerce Widgets
-
-This template includes a complete ecommerce example with four widgets:
-
-### 1. Ecommerce Carousel (`ecommerce-carousel.tsx`)
-
-A product carousel widget featuring:
-- Title and description
-- Carousel of product items with placeholder images
-- Info button and Add to Cart button for each item
-- Uses official Carousel, Card, Button, Icon, and Transition components
-- Integrates with `callTool` for cart operations
-- Persistent state management
-
-### 2. Product Search Result (`product-search-result.tsx`)
-
-A search results widget with:
-- Search input with real-time filtering
-- Price range filters and stock status filter
-- Grid layout of product cards
-- Uses `callTool` to perform searches
-- Uses `sendFollowUpMessage` to update conversation
-- Persistent filter state
-
-### 3. Stores Locations Map (`stores-locations-map.tsx`)
-
-A store locator widget featuring:
-- Interactive map display (placeholder)
-- List of store locations with details
-- Distance calculation
-- Get directions functionality
-- Store details on click
-- Uses `callTool` for directions and store info
-
-### 4. Order Confirmation (`order-confirmation.tsx`)
-
-An order confirmation widget with:
-- Order summary and items list
-- Shipping information
-- Order status tracking
-- Track order and view receipt actions
-- Uses `callTool` for order tracking
-
-## Brand Info Tool
-
-The template includes a `get-brand-info` tool (normal MCP tool, not a widget) that returns brand information:
-
-```typescript
-// Call the tool
-await client.callTool('get-brand-info', {});
-
-// Returns brand details including:
-// - Company name, tagline, description
-// - Mission and values
-// - Contact information
-// - Social media links
-```
-
-## Example: Weather Widget
-
-The included `display-weather.tsx` widget demonstrates:
-
-1. **Schema Definition**: Zod schema for validation
-2. **Metadata Export**: Widget registration info
-3. **Theme Detection**: Dark/light mode support
-4. **Type Safety**: Full TypeScript support
-
-```typescript
-// Get props from OpenAI Apps SDK
-const { props, theme } = useWidget<WeatherProps>();
-
-// props.city, props.weather, props.temperature are validated
-```
-
-## Using Widgets in ChatGPT
-
-### Via Tool Call
-
-```typescript
-await client.callTool('display-weather', {
-  city: 'San Francisco',
-  weather: 'sunny',
-  temperature: 22
-});
-```
-
-### Via Resource Access
-
-```typescript
-await client.readResource('ui://widget/display-weather');
-```
-
-## Customization Guide
-
-### Adding New Widgets
-
-1. Create a React component in `resources/my-widget.tsx`:
-
-```tsx
-import React from 'react';
-import { z } from 'zod';
-import { useWidget, type WidgetMetadata } from 'mcp-use/react';
-
-const propSchema = z.object({
-  message: z.string().describe('Message to display'),
-});
-
-export const widgetMetadata: WidgetMetadata = {
-  description: 'Display a message',
-  props: propSchema,
-};
-
-type Props = z.infer<typeof propSchema>;
-
-const MyWidget: React.FC = () => {
-  const { props, theme } = useWidget<Props>();
-
-  return (
-    <div>
-      <h1>{props.message}</h1>
-    </div>
-  );
-};
-
-export default MyWidget;
-```
-
-2. The widget is automatically registered!
-
-### Adding Traditional MCP Tools
-
-You can mix Apps SDK widgets with regular MCP tools:
-
-```typescript
-import { text } from 'mcp-use/server';
-
-server.tool({
-  name: 'get-data',
-  description: 'Fetch data from API',
-  cb: async () => {
-    return text('Data');
-  },
-});
-```
-
-## Testing Your Widgets
-
-### Via Inspector UI
-
-1. Start the server: `npm run dev`
-2. Open: `http://localhost:3000/inspector`
-3. Test widgets interactively
-
-### Direct Browser Access
-
-Visit: `http://localhost:3000/mcp-use/widgets/display-weather`
-
-### Via MCP Client
-
-```typescript
-import { createMCPClient } from 'mcp-use/client';
-
-const client = createMCPClient({
-  serverUrl: 'http://localhost:3000/mcp',
-});
-
-await client.connect();
-
-// Call widget as tool
-const result = await client.callTool('display-weather', {
-  city: 'London',
-  weather: 'rain',
-  temperature: 15
-});
-```
-
-## Apps SDK vs Other Widget Types
-
-| Feature           | Apps SDK           | External URL | Remote DOM |
-| ----------------- | ------------------ | ------------ | ---------- |
-| ChatGPT Compatible | ✅ Yes            | ❌ No        | ❌ No      |
-| Theme Detection   | ✅ Automatic      | ❌ Manual    | ❌ Manual  |
-| Props Validation  | ✅ Zod Schema     | ❌ Manual    | ❌ Manual  |
-| React Support     | ✅ Full           | ✅ Full      | ❌ Limited |
-| OpenAI Metadata   | ✅ Yes            | ❌ No        | ❌ No      |
-
-## Benefits of Apps SDK
-
-✅ **ChatGPT Native** - Works seamlessly in ChatGPT
-✅ **Theme Aware** - Automatic dark/light mode
-✅ **Type Safe** - Full TypeScript with Zod validation
-✅ **Simple API** - One hook for all props
-✅ **Auto Registration** - Export metadata and done
-
-## Troubleshooting
-
-### Widget Not Loading
-
-- Ensure widget has `widgetMetadata` export
-- Check Zod schema is valid
-- Verify widget exists in `dist/resources/mcp-use/widgets/`
-
-### Props Not Passed
-
-- Ensure schema includes all props
-- Check `.describe()` for each prop
-- Verify `useWidget` hook is called
-
-### Theme Not Applied
-
-- Theme is only available in ChatGPT
-- Use `theme` from `useWidget()` hook
-- Test in actual ChatGPT interface
-
-## Migration from Other Templates
-
-Moving from `starter` to `apps-sdk`:
-
-```typescript
-// Before: Manual props handling
-const params = new URLSearchParams(window.location.search);
-const city = params.get('city');
-
-// After: Apps SDK hook
-const { props } = useWidget();
-const city = props.city;
-```
-
-## Using Widget Capabilities
-
-The widgets in this template demonstrate the full capabilities of the Apps SDK:
-
-### Calling Tools (`callTool`)
-
-Widgets can call other MCP tools:
-
-```typescript
-const { callTool } = useWidget();
-
-const handleAction = async () => {
-  const result = await callTool('add-to-cart', {
-    productId: '123',
-    productName: 'Product Name',
-    price: 29.99
-  });
-};
-```
-
-### Sending Follow-up Messages (`sendFollowUpMessage`)
-
-Widgets can send messages to the ChatGPT conversation:
-
-```typescript
-const { sendFollowUpMessage } = useWidget();
-
-await sendFollowUpMessage('Product added to cart successfully!');
-```
-
-### Persistent State (`setState`)
-
-Widgets can maintain state across interactions:
-
-```typescript
-const { setState, state } = useWidget();
-
-// Save state
-await setState({ cart: [...cart, newItem] });
-
-// Read state
-const savedCart = state?.cart || [];
-```
-
-## Component Library Note
-
-This template uses the [OpenAI Apps SDK UI component library](https://openai.github.io/apps-sdk-ui/). The exact component API may vary based on the library version. If you encounter import errors, check the [official documentation](https://openai.github.io/apps-sdk-ui/) for the correct component names and props.
-
-If the official library is not available, you can replace the imports with custom React components or other UI libraries while maintaining the same widget structure.
-
-## Learn More
-
-- [OpenAI Apps SDK UI Components](https://openai.github.io/apps-sdk-ui/) - Official component library
-- [MCP Documentation](https://modelcontextprotocol.io)
-- [OpenAI Apps SDK](https://platform.openai.com/docs/apps)
-- [mcp-use Documentation](https://docs.mcp-use.com)
-- [React Documentation](https://react.dev/)
-- [Zod Documentation](https://zod.dev/)
-
-Happy building! 🚀
+- Connections + stationboard: `https://transport.opendata.ch`
+- Weather: `https://api.open-meteo.com`
+- GTFS static data: `https://opentransportdata.swiss`
