@@ -1,4 +1,4 @@
-import type { Leg } from "../types";
+import type { Leg } from "../types/index.js";
 
 export interface TransferRisk {
   fromStation: string;
@@ -159,4 +159,3 @@ export function calculateReliability(legs: Leg[], departureTime: string): Reliab
     transferRisks,
   };
 }
-

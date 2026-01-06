@@ -1,4 +1,4 @@
-import type { Connection, Leg, WeatherInsight } from "../types";
+import type { Connection, Leg, WeatherInsight } from "../types/index.js";
 
 export interface DecisionPreferences {
   maxTransfers?: number;

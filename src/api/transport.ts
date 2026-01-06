@@ -1,7 +1,7 @@
-import type { Station, Connection, Leg, WeatherInsight } from "../types";
-import { calculateReliability } from "../insights/reliability";
-import { getWeatherInsights } from "../insights/weather";
-import { getGtfsLookup, resolveLineInfo } from "../gtfs/lookup";
+import type { Station, Connection, Leg, WeatherInsight } from "../types/index.js";
+import { calculateReliability } from "../insights/reliability.js";
+import { getWeatherInsights } from "../insights/weather.js";
+import { getGtfsLookup, resolveLineInfo } from "../gtfs/lookup.js";
 
 const BASE_URL = "https://transport.opendata.ch/v1";
 

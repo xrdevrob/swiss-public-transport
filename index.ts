@@ -1,7 +1,7 @@
 import { MCPServer, widget, text, object } from "mcp-use/server";
 import { z } from "zod";
-import { findConnections, checkDisruptions, getStationboard } from "./src/api/transport";
-import { buildDecisionSummary } from "./src/insights/decision";
+import { findConnections, checkDisruptions, getStationboard } from "./src/api/transport.js";
+import { buildDecisionSummary } from "./src/insights/decision.js";
 
 const server = new MCPServer({
   name: "swiss-transit-explorer",
