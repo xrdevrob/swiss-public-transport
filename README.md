@@ -2,7 +2,7 @@
 
 Decision-ready Swiss public transit planning with live disruptions, risk scoring, and ChatGPT widgets.
 
-![Chat demo](docs/images/chat-test-run.gif)
+[![Chat demo](docs/images/chat-test-run.gif)](https://youtu.be/2_lXb0J2aTE)
 
 ## What this app does
 
