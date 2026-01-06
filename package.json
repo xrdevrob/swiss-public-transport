@@ -23,7 +23,7 @@
   "scripts": {
     "build": "mcp-use build",
     "dev": "mcp-use dev",
-    "start": "mcp-use start",
+    "start": "mcp-use build && mcp-use start",
     "deploy": "mcp-use deploy",
     "gtfs:build": "tsx scripts/build-gtfs-lookup.ts"
   },
