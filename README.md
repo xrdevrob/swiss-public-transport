@@ -73,6 +73,33 @@ apps-sdk/
 └── README.md
 ```
 
+## GTFS Line Mapping (Recommended)
+
+To map raw journey IDs like `004816` to human-friendly line names (`IR 16`, `S11`, `Bus 231`) the server can load a GTFS lookup built from the Swiss GTFS static feed (opentransportdata.swiss).
+
+1) Download the latest GTFS ZIP from the Swiss timetable dataset:
+   - Dataset page: `https://data.opentransportdata.swiss/dataset/timetable-2025-gtfs2020`
+   - Pick the most recent `gtfs_fpYYYY_YYYYMMDD.zip` resource
+
+2) Build the lookup file:
+
+```bash
+npm run gtfs:build -- /path/to/gtfs_fp2025_YYYYMMDD.zip
+```
+
+3) Run the server (it auto-loads `data/gtfs-lookup.json`):
+
+```bash
+npm run dev
+```
+
+Optional: set a custom lookup path with `GTFS_LOOKUP_PATH=/path/to/gtfs-lookup.json`.
+
+When present, the server enriches each leg/departure with:
+- `lineDisplay` (e.g. `IR 16`)
+- `lineType` (train/bus/tram/etc.)
+- `operator` (SBB, BLS, PostAuto, …)
+
 ## How Automatic Registration Works
 
 All React components in the `resources/` folder are automatically registered as MCP tools and resources when they export `widgetMetadata`:
