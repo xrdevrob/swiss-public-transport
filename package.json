@@ -1,8 +1,8 @@
 {
-  "name": "mcp-use server",
+  "name": "swiss-transit-explorer",
   "type": "module",
   "version": "1.0.0",
-  "description": "MCP server with OpenAI Apps SDK integration",
+  "description": "MCP server: swiss-transit-explorer",
   "author": "",
   "license": "MIT",
   "keywords": [
@@ -24,7 +24,8 @@
     "build": "mcp-use build",
     "dev": "mcp-use dev",
     "start": "mcp-use start",
-    "deploy": "mcp-use deploy"
+    "deploy": "mcp-use deploy",
+    "gtfs:build": "tsx scripts/build-gtfs-lookup.ts"
   },
   "dependencies": {
     "@openai/apps-sdk-ui": "^0.2.1",
@@ -41,8 +42,10 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
-    "@types/node": "^25.0.2",
+    "@types/debug": "^4.1.12",
+    "@types/node": "^25.0.3",
     "@vitejs/plugin-react": "^5.1.2",
+    "fflate": "^0.8.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.0"
